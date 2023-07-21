@@ -1,0 +1,60 @@
+server:
+  port: 8080
+
+management:
+  endpoints:
+    enabled-by-default: false
+    web:
+      base-path: /actuator
+      exposure:
+        include: 'health, metrics, prometheus'
+  endpoint:
+    health:
+      enabled: true
+      show-details: always
+    metrics:
+      enabled: true
+    prometheus:
+      enabled: true
+
+
+spring:
+  application:
+    name: GATEWAY
+  cloud:
+    gateway:
+      default-filters:
+        - name: Retry
+          args:
+            retries: 3
+            methods: GET
+            backoff:
+              firstBackoff: 50ms
+              maxBackoff: 500ms
+      routes:
+        - id: service
+          uri: http://localhost:7070
+          predicates:
+            - Path=/home
+          filters:
+            - name: RequestRateLimiter
+              args:
+                redis-rate-limiter:
+                  replenishRate: 2
+                  burstCapacity: 4
+                  requestedToken: 1
+                key-resolver: "#{@SimpleClientAddressResolver}"
+
+resilience4j:
+  circuitbreaker:
+    instances:
+      first-service:
+        sliding-window-size: 10
+        permitted-number-of-calls-in-half-open-state: 5
+        failure-rate-threshold: 20
+        wait-duration-in-open-state: 10000
+        register-health-indicator: true
+  timelimiter:
+    instances:
+      first-service:
+        timeout-duration: 10000
