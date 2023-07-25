@@ -19,11 +19,30 @@ management:
 
 
 spring:
+  main:
+    allow-bean-definition-overriding: true
   application:
     name: GATEWAY
+  security:
+    oauth2:
+      client:
+        registration:
+          keycloak:
+            client-id: gateway
+            client-secret: WnS5cZAdlGxtz4yifYy3wFPkhbunwDDS
+            scope: openid
+        provider:
+          keycloak:
+            issuer-uri: http://localhost:8181/realms/gateway
+  session:
+    redis:
+      repository-type: default
   cloud:
     gateway:
       default-filters:
+        - SaveSession
+        - TokenRelay
+
         - name: Retry
           args:
             retries: 3
